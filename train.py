@@ -50,23 +50,16 @@ def main():
 		train_reward = 0
 		state = env.reset()  # Reset the environment and observe the initial state
 		action, action_log_prob = agent.get_action(state)
-
-        while not done:
-            # Take action and observe result
-            next_state, reward, done, _ = env.step(action.detach().cpu().numpy())
-            next_action, next_action_log_prob = agent.get_action(next_state)
-
-            # Store and update
-            agent.store_outcome(state, next_state, action_log_prob, reward, done)
-            agent.update_policy(action)
-            agent.update_critic(action, next_action, state, next_state, reward)
-
-            # Step 5: update s ← s′ and a ← a′
-            state = next_state
-            action = next_action
-            action_log_prob = next_action_log_prob
-
-            train_reward += reward
+		while not done:
+			next_state, reward, done, _ = env.step(action.detach().cpu().numpy())
+			next_action, next_action_log_prob = agent.get_action(next_state)
+			agent.store_outcome(state, next_state, action_log_prob, reward, done)
+			agent.update_policy(action)
+			agent.update_critic(action, next_action, state, next_state, reward)
+			state = next_state
+			action = next_action
+			action_log_prob = next_action_log_prob
+			train_reward += reward
 		if (episode+1)%args.print_every == 0:
 			print('Training episode:', episode)
 			print('Episode return:', train_reward)
