@@ -46,40 +46,25 @@ def main():
     #
 
 	for episode in range(args.n_episodes):
-        state = env.reset()
-        done = False
-        train_reward = 0
-
-        # Step 1: inizializza a ~ πθ(a|s)
-        action, action_log_prob = agent.get_action(state)
-        
-        while not done:
-            prev_state = state
-            prev_action = action
-            prev_log_prob = action_log_prob
-
-            # Step 2.1: ottieni reward e stato successivo
-            state, reward, done, info = env.step(action.detach().cpu().numpy())
-
-            # Step 2.2: ottieni nuova azione a′ ~ πθ(a′|s′)
-            action, action_log_prob = agent.get_action(state)
-
-            # Step 2.3: aggiorna θ
-            agent.states.append(torch.from_numpy(prev_state).float())
-            agent.action_log_probs.append(prev_log_prob)
-            agent.update_policy(prev_action)
-
-            # Step 2.4: aggiorna w (Critic) con TD error
-            agent.update_critic(prev_action, action, prev_state, state, reward, done)
-
-            # Optional: puoi salvare la transizione se vuoi loggare
-            agent.rewards.append(torch.tensor([reward]))
-            train_reward += reward
-
-        if (episode + 1) % args.print_every == 0:
-            print(f"Training episode: {episode+1}")
-            print(f"Episode return: {train_reward:.2f}")
-
+		state = env.reset()
+		done = False
+		train_reward = 0
+		action, action_log_prob = agent.get_action(state)
+		while not done:
+			prev_state = state
+			prev_action = action
+			prev_log_prob = action_log_prob
+			state, reward, done, info = env.step(action.detach().cpu().numpy())
+			action, action_log_prob = agent.get_action(state)
+			agent.states.append(torch.from_numpy(prev_state).float())
+			agent.action_log_probs.append(prev_log_prob)
+			agent.update_policy(prev_action)
+			agent.update_critic(prev_action, action, prev_state, state, reward, done)
+			agent.rewards.append(torch.tensor([reward]))
+			train_reward += reward
+		if (episode + 1) % args.print_every == 0:
+			print(f"Training episode: {episode+1}")
+			print(f"Episode return: {train_reward:.2f}")
 	torch.save(agent.policy.state_dict(), "model6.mdl")
 
 	

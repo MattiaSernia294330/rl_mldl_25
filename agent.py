@@ -110,41 +110,27 @@ class Agent(object):
         action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
         states = torch.stack(self.states, dim=0).to(self.train_device).squeeze(-1)
         actions = action.to(self.train_device).unsqueeze(0)
-
-        # Compute Q(s, a)
         state_action = torch.cat([states, actions], dim=1)
         Q_value = self.get_critic(state_action)
-
-        # Policy gradient update (maximize Q * log_pi)
         policy_loss = -(Q_value.squeeze(-1) * action_log_probs).mean()
-
         self.optimizer.zero_grad()
         policy_loss.backward()
         self.optimizer.step()
-
-        # Reset stored transitions
         self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
-
-      
-
+    
     def update_critic(self, previous_action, action, previous_state, state, reward, done):
         previous_action = previous_action.to(self.train_device).unsqueeze(0)
         action = action.to(self.train_device).unsqueeze(0)
         previous_state = torch.from_numpy(previous_state).float().to(self.train_device).unsqueeze(0)
         state = torch.from_numpy(state).float().to(self.train_device).unsqueeze(0)
-
         with torch.no_grad():
-            # TD target: r + γ * Q(s', a') if not done, else just r
             if done:
                 target = torch.tensor([reward], dtype=torch.float32, device=self.train_device)
             else:
                 target = reward + self.gamma * self.get_critic(torch.cat([state, action], dim=1)).squeeze(-1)
-
         current = self.get_critic(torch.cat([previous_state, previous_action], dim=1)).squeeze(-1)
         delta = target - current
-
         critic_loss = delta.pow(2).mean()
-
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
