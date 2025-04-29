@@ -106,44 +106,43 @@ class Agent(object):
         self.done = []
 
 
-    def update_policy(self,action):
-        action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
-        states = torch.stack(self.states, dim=0).to(self.train_device).squeeze(-1)
-        next_states = torch.stack(self.next_states, dim=0).to(self.train_device).squeeze(-1)
-        rewards = torch.stack(self.rewards, dim=0).to(self.train_device).squeeze(-1)
-        done = torch.Tensor(self.done).to(self.train_device)
+    def update_policy(self, state, action, td_error):
+    # Recalculate log-prob of taken action
+    action_mean = self.policy_net(state)
+    action_std = torch.ones_like(action_mean).to(device)
+    dist = torch.distributions.Normal(action_mean, action_std)
+    log_prob = dist.log_prob(action).sum(dim=-1, keepdim=True)
 
-        self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
+    # Actor loss = -delta * log_prob
+    actor_loss = -(td_error * log_prob).mean()
 
-        #
-        # TASK 2:
-        #   - compute discounted returns
-        #   - compute policy gradient loss function given actions and returns
-        #   - compute gradients and step the optimizer
-        #
+    self.policy_optimizer.zero_grad()
+    actor_loss.backward()
+    self.policy_optimizer.step()
+      
 
+    def update_critic(self, state, action, reward, next_state, next_action, done):
+    state_action = torch.cat([state, action], dim=1)
+    next_state_action = torch.cat([next_state, next_action], dim=1)
 
-        #
-        # TASK 3:
-        action=action.to(self.train_device).unsqueeze(0)
-        state_action=torch.cat([states,action], dim=1)
-        Q_value=self.get_critic(state_action)
-        policy_loss = (Q_value.squeeze(-1) * action_log_probs).mean()
-        self.optimizer.zero_grad()
-        policy_loss.backward()
-        self.optimizer.step()
-        return        
+    current_Q = self.get_critic(state_action)
+    next_Q = self.get_critic(next_state_action).detach()
 
-    def update_critic(self, previous_action, action, previous_state, state, reward):
-        action=action.to(self.train_device).unsqueeze(0)
-        previous_action=previous_action.to(self.train_device).unsqueeze(0)
-        state=torch.from_numpy(state).float().to(self.train_device).unsqueeze(0)
-        previous_state=torch.from_numpy(previous_state).float().to(self.train_device).unsqueeze(0)
-        delta=reward+self.gamma*self.get_critic(torch.cat([state,action], dim=1))-self.get_critic(torch.cat([previous_state,previous_action], dim=1))
-        critic_loss=(delta.squeeze(-1)*self.get_critic(torch.cat([previous_state,previous_action], dim=1))).mean()
-        self.critic_optimizer.zero_grad()
-        critic_loss.backward()
-        self.critic_optimizer.step()
+    # TD target
+    target_Q = reward if done else reward + self.gamma * next_Q
+
+    # TD error
+    td_error = target_Q - current_Q
+
+    # Critic loss = TD error squared
+    critic_loss = td_error.pow(2).mean()
+
+    self.critic_optimizer.zero_grad()
+    critic_loss.backward()
+    self.critic_optimizer.step()
+
+    return td_error.detach()
+
 
 
     def get_action(self, state, evaluation=False):
