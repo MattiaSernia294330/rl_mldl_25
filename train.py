@@ -49,16 +49,19 @@ def main():
 		done = False
 		train_reward = 0
 		state = env.reset()  # Reset the environment and observe the initial state
-        action, action_log_prob = agent.get_action(state)
+		action, action_log_prob = agent.get_action(state)
 
         while not done:
+            # Take action and observe result
             next_state, reward, done, _ = env.step(action.detach().cpu().numpy())
             next_action, next_action_log_prob = agent.get_action(next_state)
 
-            # Update critic and policy using TD error
-            td_error = agent.update_critic(state, action, reward, next_state, next_action, done)
-            agent.update_policy(state, action, td_error)
+            # Store and update
+            agent.store_outcome(state, next_state, action_log_prob, reward, done)
+            agent.update_policy(action)
+            agent.update_critic(action, next_action, state, next_state, reward)
 
+            # Step 5: update s ← s′ and a ← a′
             state = next_state
             action = next_action
             action_log_prob = next_action_log_prob
