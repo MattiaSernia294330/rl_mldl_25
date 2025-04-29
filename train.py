@@ -55,10 +55,10 @@ def main():
 			prev_action = action
 			prev_log_prob = action_log_prob
 			state, reward, done, info = env.step(action.detach().cpu().numpy())
-			action, action_log_prob = agent.get_action(state)
 			agent.states.append(torch.from_numpy(prev_state).float())
 			agent.action_log_probs.append(prev_log_prob)
 			agent.update_policy(prev_action)
+			action, action_log_prob = agent.get_action(state)
 			agent.update_critic(prev_action, action, prev_state, state, reward, done)
 			agent.rewards.append(torch.tensor([reward]))
 			train_reward += reward
