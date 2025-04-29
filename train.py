@@ -69,7 +69,7 @@ def main():
 			print('Episode return:', train_reward)
 
 
-	torch.save(agent.policy.state_dict(), "model3.mdl")
+	torch.save(agent.policy.state_dict(), "model6.mdl")
 
 	
 
