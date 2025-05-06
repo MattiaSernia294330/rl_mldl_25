@@ -30,11 +30,11 @@ class Critic(torch.nn.Module):
     def init_weights(self):
         for layer in [self.fc1, self.fc2]:
 
-            nn.init.zeros_(layer.weight)
+            torch.nn.init.zeros_(layer.weight)
 
             if layer.bias is not None:
 
-                nn.init.zeros_(layer.bias)
+                torch.nn.init.zeros_(layer.bias)
 
     def forward(self, state):
 
@@ -125,9 +125,9 @@ class Agent(object):
 
         done = torch.Tensor(self.done).to(self.train_device)
 
-        td_target = reward + gamma*next_value *(1-done)
+        td_target = reward + self.gamma*next_value *(1-done)
 
-        avantage = td_target-value
+        advantage = td_target-value
 
         critic_loss = F.mse_loss(value, td_target)
 

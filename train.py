@@ -66,9 +66,9 @@ def main():
 
 			next_value = critic(torch.FloatTensor(state))
 
-			advantage = update_critic(reward, value, next_value)
+			advantage = agent.update_critic(reward, value, next_value)
 
-			update_policy()
+			agent.update_policy(advantage)
 		
 		if (episode+1)%args.print_every == 0:
 			print('Training episode:', episode)
