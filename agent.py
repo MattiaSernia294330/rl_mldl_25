@@ -21,9 +21,9 @@ class Critic(torch.nn.Module):
 
         input_dim = state_space
 
-        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc1 = torch.nn.Linear(input_dim, 64)
 
-        self.fc2 = nn.Linear(64, 1)
+        self.fc2 = torch.nn.Linear(64, 1)
 
         self.init_weights()
 
