@@ -35,27 +35,25 @@ def main():
 		Training
 	"""
 	observation_space_dim = env.observation_space.shape[-1]
+
 	action_space_dim = env.action_space.shape[-1]
 
 	policy = Policy(observation_space_dim, action_space_dim)
-	agent = Agent(policy, device=args.device)
 
-    #
-    # TASK 2 and 3: interleave data collection to policy updates
-    #
+	critic=Critic(observation_space_dim)
+
+	agent = Agent(policy,critic, device=args.device)
+
 
 	for episode in range(args.n_episodes):
 		done = False
 		train_reward = 0
 		state = env.reset()  # Reset the environment and observe the initial state
-		first=True
 		while not done:  # Loop until the episode is over
-			if first == True:
-				action, action_probabilities = agent.get_action(state)
-				first=False
-			else: 
-				action=next_action
-				action_probabilities=next_action_probabilities
+			action, action_probabilities = agent.get_action(state)
+
+			first=False
+
 			previous_state = state
 
 			state, reward, done, info = env.step(action.detach().cpu().numpy())
@@ -63,16 +61,21 @@ def main():
 			agent.store_outcome(previous_state, state, action_probabilities, reward, done)
 
 			train_reward += reward
-			agent.update_policy(action)
-			next_action, next_action_probabilities = agent.get_action(state)
-			agent.update_critic(action, next_action, previous_state, state, reward)
+
+			value=critic(previous_state)
+
+			next_value = critic(torch.FloatTensor(state))
+
+			advantage = update_critic(reward, value, next_value)
+
+			update_policy()
 		
 		if (episode+1)%args.print_every == 0:
 			print('Training episode:', episode)
 			print('Episode return:', train_reward)
 
 
-	torch.save(agent.policy.state_dict(), "model.mdl")
+	torch.save(agent.policy.state_dict(), "A2C.mdl")
 
 	
 
